@@ -24,18 +24,18 @@ class DIME:
     >>> x  # N x C torch 2D float-tensor.
     >>> modelled_embedding = DIME().fit(x)
 
-    To obtain probabilities, calibrate percentiles. Preferrably against
+    To obtain probabilities, calibrate percentiles. Preferably against
     separate dataset. Chaining is fine.
-    >>> x  # N x C torch 2D float-tensor.
-    >>> x_cal  # N x C torch 2D float-tensor.
+    >>> x  # N x P torch 2D float-tensor.
+    >>> x_cal  # N x P torch 2D float-tensor.
     >>> modelled_embedding = DIME().fit(x).calibrate(x_cal)
 
     Given fitted hyperplane, you can calculate distances on new observations
-    >>> x_new  # N x C torch 2D float-tensor.
+    >>> x_new  # N x P torch 2D float-tensor.
     >>> modelled_embedding.distance_to_hyperplane(x_new)
 
-    Or within hyperplace.
-    >>> x_new  # N x C torch 2D float-tensor.
+    Or within hyperplane.
+    >>> x_new  # N x P torch 2D float-tensor.
     >>> modelled_embedding.distance_within_hyperplane(x_new)  # -> 1D float-tensor. 
 
     To obtain probabilities of that the new observations have a distance
@@ -43,7 +43,7 @@ class DIME:
     you need to have calibrated the percentiles as shown above. Then you
     receive the probablities by passing `return_probablities`-keyword:
     
-    >>> x_new  # N x C torch 2D float-tensor.
+    >>> x_new  # N x P torch 2D float-tensor.
     >>> modelled_embedding.distance_within_hyperplane(x_new, return_probabilites=True) # -> 1D float-tensor. 
     """
     
