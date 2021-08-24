@@ -39,6 +39,10 @@ class DIME:
         Either a float between 0 and 1, which indicate the ratio of explained
         variance threshold used to determine the rank of the hyperplane approximation,
         or an int that specifies the rank directly.
+    n_percentiles : int (default 5000)
+        Number of discrete percentiles that will be used for probability lookups. A higher
+        number indicate more fine-grained probability estimation. A value of 100 indicate
+        that percentiles correspond to whole percentages.
 
     Examples
     --------
@@ -70,7 +74,7 @@ class DIME:
     >>> modelled_embedding.distance_within_hyperplane(x_new)  # -> 1D float-tensor, length N_new
     """
     
-    def __init__(self, explained_variance_threshold: Union[float, int] = 0.99):
+    def __init__(self, explained_variance_threshold: Union[float, int] = 0.99, n_percentiles: int = 5000):
         self.explained_variance_threshold = explained_variance_threshold
         self.hyperplane_basis_vectors = None
         self.explained_variance = None
@@ -79,11 +83,9 @@ class DIME:
         self._d_within_histogram = None
         self._d_from_histogram = None
         self._precision = None
-        self._histogram_percentiles = torch.FloatTensor(np.concatenate([
-            np.linspace(0, 10, 1000),
-            np.linspace(10, 90, 800),
-            np.linspace(90, 100, 1000)
-        ]))
+
+        # Specify the percentiles that will be available for probability lookups.
+        self._histogram_percentiles = torch.linspace(0, 100, n_percentiles)
         
     def fit(self, x: torch.Tensor, calibrate_against_trainingset: bool = False) -> "DIME":
         """ Fit hyperplane and optionally calibrate percentiles against training-set. """
