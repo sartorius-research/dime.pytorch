@@ -75,6 +75,12 @@ class DIME:
     """
     
     def __init__(self, explained_variance_threshold: Union[float, int] = 0.99, n_percentiles: int = 5000):
+        if isinstance(explained_variance_threshold, float) and not (0 <= explained_variance_threshold <= 1):
+            raise ValueError('float param explained_variance_threshold should be between 0 and 1 when float')
+        if isinstance(explained_variance_threshold, int) and explained_variance_threshold < 1:
+            raise ValueError('integer param explained_variance_threshold should be positive')
+        if isinstance(n_percentiles, int) and n_percentiles < 1:
+            raise ValueError('param n_percentiles should be positive')
         self.explained_variance_threshold = explained_variance_threshold
         self.hyperplane_basis_vectors = None
         self.explained_variance = None

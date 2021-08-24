@@ -16,4 +16,8 @@ def test_raises_on_bad_arguments():
     with pytest.raises(ValueError):
         DIME(explained_variance_threshold=1.1)
     with pytest.raises(ValueError):
+        DIME(explained_variance_threshold=-1)
+    with pytest.raises(ValueError):
+        DIME(explained_variance_threshold=-.1)
+    with pytest.raises(ValueError):
         DIME(n_percentiles=-1)
