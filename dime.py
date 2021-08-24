@@ -35,7 +35,7 @@ class DIME:
 
     Parameters
     ----------
-    r2_threshold : float, int (default 0.99)
+    explained_variance_threshold : float, int (default 0.99)
         Either a float between 0 and 1, which indicate the ratio of explained
         variance threshold used to determine the rank of the hyperplane approximation,
         or an int that specifies the rank directly.
@@ -70,14 +70,15 @@ class DIME:
     >>> modelled_embedding.distance_within_hyperplane(x_new)  # -> 1D float-tensor, length N_new
     """
     
-    def __init__(self, r2_threshold: Union[float, int] = 0.99):
-        self.r2_threshold = r2_threshold
-        self.v = None
-        self.r2 = None
+    def __init__(self, explained_variance_threshold: Union[float, int] = 0.99):
+        self.explained_variance_threshold = explained_variance_threshold
+        self.hyperplane_basis_vectors = None
+        self.explained_variance = None
                 
         self._embedded_mean = None
         self._d_within_histogram = None
         self._d_from_histogram = None
+        self._precision = None
         self._histogram_percentiles = torch.FloatTensor(np.concatenate([
             np.linspace(0, 10, 1000),
             np.linspace(10, 90, 800),
@@ -86,11 +87,10 @@ class DIME:
         
     def fit(self, x: torch.Tensor, calibrate_against_trainingset: bool = False) -> "DIME":
         """ Fit hyperplane and optionally calibrate percentiles against training-set. """
-        n_samples, n_features = x.shape
-        scores, self.v, self.r2 = fit_svd(x, self.r2_threshold)
+        scores, self.hyperplane_basis_vectors, self.explained_variance = fit_svd(x, self.explained_variance_threshold)
         self._embedded_mean = torch.mean(scores, dim=0)
         cov = covariance(scores - self._embedded_mean[None], assume_centered=True)
-        self.precision = torch.inverse(cov)
+        self._precision = torch.inverse(cov)
 
         if calibrate_against_trainingset:
             self.calibrate(x)
@@ -104,17 +104,17 @@ class DIME:
         self._d_from_histogram = torch.FloatTensor(np.percentile(np.sqrt(rss), percentiles))
 
         scores = self.transform(x) - self._embedded_mean[None]
-        mahal = squared_mahalanobis_distance(scores, self.precision).detach().cpu().numpy()
+        mahal = squared_mahalanobis_distance(scores, self._precision).detach().cpu().numpy()
         self._d_within_histogram = torch.FloatTensor(np.percentile(np.sqrt(mahal), percentiles))
         return self
         
     def transform(self, x: torch.Tensor) -> torch.Tensor:
         """ Project observations on hyperplane. """
-        return torch.mm(x, self.v)
+        return torch.mm(x, self.hyperplane_basis_vectors)
     
     def inverse_transform(self, scores: torch.Tensor) -> torch.Tensor:
         """ Project observations projected on hyperplane back to data-space. """ 
-        return torch.mm(scores, self.v.t())
+        return torch.mm(scores, self.hyperplane_basis_vectors.t())
     
     def residual_sum_of_squares(self, x: torch.Tensor, dim: int = 1) -> torch.Tensor:
         """ Calculate sum-of-squares residual of reconstruction based on hyperplane. """
@@ -134,7 +134,7 @@ class DIME:
     def distance_within_hyperplane(self, x: torch.Tensor, return_probabilities: bool = False) -> torch.Tensor:
         """ Distance withing hyperplane (D-within), optionally given as probabilities. """
         scores = self.transform(x) - self._embedded_mean[None]
-        squared_mahal = squared_mahalanobis_distance(scores, self.precision)
+        squared_mahal = squared_mahalanobis_distance(scores, self._precision)
         mahal = torch.sqrt(squared_mahal)
         if return_probabilities:
             return self._calculate_probability(mahal, self._d_within_histogram)
