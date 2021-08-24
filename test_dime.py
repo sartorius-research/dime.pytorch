@@ -63,8 +63,8 @@ def test_get_distance_within_hyperplane():
     x = torch.randn(n, 30)
     modelled_embedding = DIME().fit(x)
 
-    dime = modelled_embedding.distance_within_hyperplane(x)
-    assert dime.shape == (2000, )
+    d_within_hyperplane = modelled_embedding.distance_within_hyperplane(x)
+    assert d_within_hyperplane.shape == (2000, )
 
 
 def test_get_probabilities_raises_when_not_calibrated():
