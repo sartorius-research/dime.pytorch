@@ -76,3 +76,23 @@ def test_get_probabilities_raises_when_not_calibrated():
 
     with pytest.raises(NotCalibrated):
         modelled_embedding.distance_within_hyperplane(x, return_probabilities=True)
+
+
+def test_get_distance_to_hyperplane_as_probability():
+    n = 2000
+    x = torch.randn(n, 30)
+    modelled_embedding = DIME().fit(x).calibrate(x)
+    probabilities = modelled_embedding.distance_to_hyperplane(x, return_probabilities=True)
+
+    assert probabilities.shape == (2000, )
+    assert (probabilities <= 1.0).all() and (probabilities >= 0.0).all()
+
+
+def test_get_distance_within_hyperplane_as_probability():
+    n = 2000
+    x = torch.randn(n, 30)
+    modelled_embedding = DIME().fit(x).calibrate(x)
+    probabilities = modelled_embedding.distance_within_hyperplane(x, return_probabilities=True)
+
+    assert probabilities.shape == (2000, )
+    assert (probabilities <= 1.0).all() and (probabilities >= 0.0).all()
