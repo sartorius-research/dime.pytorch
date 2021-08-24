@@ -21,6 +21,8 @@
 import torch
 import numpy as np
 
+__version__ = '1.0.0'
+
 
 class DIME:
 
@@ -118,21 +120,21 @@ class DIME:
         rss = (residuals ** 2).sum(dim=dim)
         return rss
     
-    def distance_to_hyperplane(self, x, return_probablities=False):
+    def distance_to_hyperplane(self, x, return_probabilities=False):
         """ Distance to hyperplane (DIME), optionally given as probabilities. """
         dime = torch.sqrt(self.residual_sum_of_squares(x, dim=1))
 
-        if return_probablities:
+        if return_probabilities:
             return self._calculate_probability(dime, self._d_from_histogram)
         else:
             return dime
         
-    def distance_within_hyperplane(self, x, return_probablities=False):
+    def distance_within_hyperplane(self, x, return_probabilities=False):
         """ Distance withing hyperplane (D-within), optionally given as probabilities. """
         scores = self.transform(x) - self._embedded_mean[None]
         squared_mahal = squared_mahalanobis_distance(scores, self.precision)
         mahal = torch.sqrt(mahal)
-        if return_probablities:
+        if return_probabilities:
             return self._calculate_probability(mahal, self._d_within_histogram)
         else:
             return mahal
