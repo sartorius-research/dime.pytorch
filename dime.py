@@ -133,7 +133,7 @@ class DIME:
         """ Distance withing hyperplane (D-within), optionally given as probabilities. """
         scores = self.transform(x) - self._embedded_mean[None]
         squared_mahal = squared_mahalanobis_distance(scores, self.precision)
-        mahal = torch.sqrt(mahal)
+        mahal = torch.sqrt(squared_mahal)
         if return_probabilities:
             return self._calculate_probability(mahal, self._d_within_histogram)
         else:
