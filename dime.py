@@ -26,6 +26,10 @@ import numpy as np
 __version__ = '1.0.0'
 
 
+class NotCalibrated(Exception):
+    """ Exception indicating that DIME percentiles are not calibrated. """
+
+
 class DIME:
 
     """ Distance to Modelled Embedding (DIME)
@@ -150,6 +154,9 @@ class DIME:
             return mahal
 
     def _calculate_probability(self, distances: torch.Tensor, distance_histogram: torch.Tensor) -> torch.Tensor:
+        if not self._is_calibrated:
+            raise NotCalibrated('Percentiles must be calibrated using DIME.calibrate(x: torch.Tensor) before '
+                                'obtaining probability estimates.')
         n_bins = len(distance_histogram)
         repeated_distances = distances.repeat(n_bins, 1)
 
@@ -158,6 +165,11 @@ class DIME:
 
         probabilities = self._histogram_percentiles[cdf_indices] / 100
         return probabilities
+
+    @property
+    def _is_calibrated(self):
+        is_calibrated = (self._d_within_histogram is not None) and (self._d_from_histogram is not None)
+        return is_calibrated
 
 
 def covariance(x: torch.Tensor, assume_centered: bool = False) -> torch.Tensor:

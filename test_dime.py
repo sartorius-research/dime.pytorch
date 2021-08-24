@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from dime import DIME
+from dime import DIME, NotCalibrated
 
 
 def test_creation():
@@ -65,3 +65,14 @@ def test_get_distance_within_hyperplane():
 
     dime = modelled_embedding.distance_within_hyperplane(x)
     assert dime.shape == (2000, )
+
+
+def test_get_probabilities_raises_when_not_calibrated():
+    x = torch.randn(2000, 30)
+    modelled_embedding = DIME().fit(x)
+
+    with pytest.raises(NotCalibrated):
+        modelled_embedding.distance_to_hyperplane(x, return_probabilities=True)
+
+    with pytest.raises(NotCalibrated):
+        modelled_embedding.distance_within_hyperplane(x, return_probabilities=True)
