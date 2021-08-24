@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from dime import DIME, NotCalibrated
+from dime import DIME, NotCalibrated, NotFitted
 
 
 def test_creation():
@@ -47,6 +47,17 @@ def test_fit_embedding_with_specific_ratio():
     modelled_embedding = DIME(explained_variance_threshold=ratio).fit(x)
 
     assert modelled_embedding.explained_variance <= ratio
+
+
+def test_get_distance_raises_when_not_fitted():
+    x = torch.randn(2000, 30)
+    modelled_embedding = DIME()
+
+    with pytest.raises(NotFitted):
+        modelled_embedding.distance_to_hyperplane(x)
+
+    with pytest.raises(NotFitted):
+        modelled_embedding.distance_within_hyperplane(x)
 
 
 def test_get_distance_to_hyperplane():

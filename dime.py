@@ -26,6 +26,10 @@ import numpy as np
 __version__ = '1.0.0'
 
 
+class NotFitted(Exception):
+    """ Exception indicating that DIME hyperplane-approximation is not fitted. """
+
+
 class NotCalibrated(Exception):
     """ Exception indicating that DIME percentiles are not calibrated. """
 
@@ -136,6 +140,9 @@ class DIME:
     
     def distance_to_hyperplane(self, x: torch.Tensor, return_probabilities: bool = False) -> torch.Tensor:
         """ Distance to hyperplane (DIME), optionally given as probabilities. """
+        if not self._is_fitted:
+            raise NotFitted('Hyperplane-approximation must be fitted using DIME.fit(x: torch.Tensor) before '
+                            'obtaining distance to hyperplane')
         dime = torch.sqrt(self.residual_sum_of_squares(x, dim=1))
 
         if return_probabilities:
@@ -145,6 +152,9 @@ class DIME:
         
     def distance_within_hyperplane(self, x: torch.Tensor, return_probabilities: bool = False) -> torch.Tensor:
         """ Distance withing hyperplane (D-within), optionally given as probabilities. """
+        if not self._is_fitted:
+            raise NotFitted('Hyperplane-approximation must be fitted using DIME.fit(x: torch.Tensor) before '
+                            'obtaining distance within hyperplane')
         scores = self.transform(x) - self._embedded_mean[None]
         squared_mahal = squared_mahalanobis_distance(scores, self._precision)
         mahal = torch.sqrt(squared_mahal)
@@ -170,6 +180,11 @@ class DIME:
     def _is_calibrated(self):
         is_calibrated = (self._d_within_histogram is not None) and (self._d_from_histogram is not None)
         return is_calibrated
+
+    @property
+    def _is_fitted(self):
+        is_fitted = self.hyperplane_basis_vectors is not None
+        return is_fitted
 
 
 def covariance(x: torch.Tensor, assume_centered: bool = False) -> torch.Tensor:
