@@ -117,11 +117,18 @@ class DIME:
         """ Calibrate percentiles to enable probabilities. """
         percentiles = self._histogram_percentiles.cpu().numpy()
         rss = self.residual_sum_of_squares(x, dim=1).detach().cpu().numpy()
-        self._d_from_histogram = torch.FloatTensor(np.percentile(np.sqrt(rss), percentiles))
+        rss_histogram = torch.FloatTensor(np.percentile(np.sqrt(rss), percentiles))
+
+        # Add dtype-max value to end to handle new observations larger than every calibration
+        # set distance. If we don't do it like this, the percentile-index of said observation
+        # will be 0, which is interpreted like that there are NO calibration set distances
+        # smaller than observed. This is opposite of what we want.
+        self._d_from_histogram = _append_dtype_max(rss_histogram)
 
         scores = self.transform(x) - self._embedded_mean[None]
         mahal = squared_mahalanobis_distance(scores, self._precision).detach().cpu().numpy()
-        self._d_within_histogram = torch.FloatTensor(np.percentile(np.sqrt(mahal), percentiles))
+        mahal_histogram = torch.FloatTensor(np.percentile(np.sqrt(mahal), percentiles))
+        self._d_within_histogram = _append_dtype_max(mahal_histogram)
         return self
         
     def transform(self, x: torch.Tensor) -> torch.Tensor:
@@ -171,7 +178,13 @@ class DIME:
         repeated_distances = distances.repeat(n_bins, 1)
 
         histogram_thresholded_distances = (repeated_distances < distance_histogram[:, None])
-        cdf_indices = histogram_thresholded_distances.int().argmin(0)
+        cdf_indices = histogram_thresholded_distances.int().argmax(0)
+
+        # Observerations with distance larger than every calibration distance will get an out-of-range
+        # index, so we set the indexes of those observations to last available. This will cause the an
+        # estimated probability of observing an observation with smaller distance than observed to be
+        # equal to 1.0, which is exactly what we want anyway.
+        cdf_indices[cdf_indices == len(self._histogram_percentiles)] = -1
 
         probabilities = self._histogram_percentiles[cdf_indices] / 100
         return probabilities
@@ -228,3 +241,10 @@ def fit_svd(x: torch.Tensor, n_components: Union[int, float]) -> Tuple[torch.Ten
     v = v[:, :n_components]
     scores = (u * s)[:, :n_components]
     return scores, v, r2[:n_components]
+
+
+def _append_dtype_max(tensor: torch.Tensor):
+    assert tensor.ndim == 1, 'input must be 1D'
+    max_value = torch.finfo(tensor.dtype).max
+    new_tensor = torch.cat((tensor, torch.tensor([max_value])))
+    return new_tensor

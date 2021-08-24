@@ -127,3 +127,31 @@ def test_get_distance_within_hyperplane_as_probability():
 
     assert probabilities.shape == (2000, )
     assert (probabilities <= 1.0).all() and (probabilities >= 0.0).all()
+
+
+def test_outlier_detection_sanity_check():
+    x = torch.randn(2000, 30)
+    outlier = torch.ones((1, 30)) * 100
+    modelled_embedding = DIME().fit(x)
+    dime = modelled_embedding.distance_to_hyperplane(outlier)
+    training_dime = modelled_embedding.distance_to_hyperplane(x)
+    assert dime.item() > (training_dime.mean() + 6 * training_dime.std())
+
+
+def test_outlier_detection_sanity_check_with_probabilities():
+    x = torch.randn(2000, 30)
+    x_cal = torch.randn(500, 30)
+    outlier = torch.ones((1, 30)) * 100
+    modelled_embedding = DIME().fit(x).calibrate(x_cal)
+    dime = modelled_embedding.distance_to_hyperplane(outlier, return_probabilities=True)
+
+    assert dime.item() == 1.0, "Should be extremely likely to see a smaller distance."
+
+
+def test_outlier_detection_sanity_check_distance_within():
+    x = torch.randn(2000, 30)
+    outlier = torch.ones((1, 30)) * 100
+    modelled_embedding = DIME().fit(x)
+    w_distance = modelled_embedding.distance_within_hyperplane(outlier)
+    training_w_distance = modelled_embedding.distance_within_hyperplane(x)
+    assert w_distance.item() > (training_w_distance.mean() + 6 * training_w_distance.std())
