@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from typing import Union, Tuple
+
 import torch
 import numpy as np
 
@@ -68,7 +70,7 @@ class DIME:
     >>> modelled_embedding.distance_within_hyperplane(x_new)  # -> 1D float-tensor, length N_new
     """
     
-    def __init__(self, r2_threshold=0.99):
+    def __init__(self, r2_threshold: Union[float, int] = 0.99):
         self.r2_threshold = r2_threshold
         self.v = None
         self.r2 = None
@@ -82,7 +84,7 @@ class DIME:
             np.linspace(90, 100, 1000)
         ]))
         
-    def fit(self, x, calibrate_against_trainingset=False):
+    def fit(self, x: torch.Tensor, calibrate_against_trainingset: bool = False) -> "DIME":
         """ Fit hyperplane and optionally calibrate percentiles against training-set. """
         n_samples, n_features = x.shape
         scores, self.v, self.r2 = fit_svd(x, self.r2_threshold)
@@ -95,7 +97,7 @@ class DIME:
 
         return self
 
-    def calibrate(self, x: torch.FloatTensor):
+    def calibrate(self, x: torch.Tensor) -> "DIME":
         """ Calibrate percentiles to enable probabilities. """
         percentiles = self._histogram_percentiles.cpu().numpy()
         rss = self.residual_sum_of_squares(x, dim=1).detach().cpu().numpy()
@@ -106,21 +108,21 @@ class DIME:
         self._d_within_histogram = torch.FloatTensor(np.percentile(np.sqrt(mahal), percentiles))
         return self
         
-    def transform(self, x):
+    def transform(self, x: torch.Tensor) -> torch.Tensor:
         """ Project observations on hyperplane. """
         return torch.mm(x, self.v)
     
-    def inverse_transform(self, scores):
+    def inverse_transform(self, scores: torch.Tensor) -> torch.Tensor:
         """ Project observations projected on hyperplane back to data-space. """ 
         return torch.mm(scores, self.v.t())
     
-    def residual_sum_of_squares(self, x, dim=1):
+    def residual_sum_of_squares(self, x: torch.Tensor, dim: int = 1) -> torch.Tensor:
         """ Calculate sum-of-squares residual of reconstruction based on hyperplane. """
         residuals = x - self.inverse_transform(self.transform(x))
         rss = (residuals ** 2).sum(dim=dim)
         return rss
     
-    def distance_to_hyperplane(self, x, return_probabilities=False):
+    def distance_to_hyperplane(self, x: torch.Tensor, return_probabilities: bool = False) -> torch.Tensor:
         """ Distance to hyperplane (DIME), optionally given as probabilities. """
         dime = torch.sqrt(self.residual_sum_of_squares(x, dim=1))
 
@@ -129,7 +131,7 @@ class DIME:
         else:
             return dime
         
-    def distance_within_hyperplane(self, x, return_probabilities=False):
+    def distance_within_hyperplane(self, x: torch.Tensor, return_probabilities: bool = False) -> torch.Tensor:
         """ Distance withing hyperplane (D-within), optionally given as probabilities. """
         scores = self.transform(x) - self._embedded_mean[None]
         squared_mahal = squared_mahalanobis_distance(scores, self.precision)
@@ -139,7 +141,7 @@ class DIME:
         else:
             return mahal
 
-    def _calculate_probability(self, distances, distance_histogram):
+    def _calculate_probability(self, distances: torch.Tensor, distance_histogram: torch.Tensor) -> torch.Tensor:
         n_bins = len(distance_histogram)
         repeated_distances = distances.repeat(n_bins, 1)
 
@@ -150,7 +152,7 @@ class DIME:
         return probabilities
 
 
-def covariance(x, assume_centered=False):
+def covariance(x: torch.Tensor, assume_centered: bool = False) -> torch.Tensor:
     """ Calculate empirical covariance matrix.. """
     n_samples, n_features = x.shape
     if not assume_centered:
@@ -160,12 +162,12 @@ def covariance(x, assume_centered=False):
     return cov
 
 
-def squared_mahalanobis_distance(x, precision):
+def squared_mahalanobis_distance(x: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
     mahal = (torch.mm(x, precision) * x).sum(dim=1)
     return mahal
 
 
-def fit_svd(x, n_components):
+def fit_svd(x: torch.Tensor, n_components: Union[int, float]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """ Fit hyperplane using singular value decomposition. 
     
     Parameters
