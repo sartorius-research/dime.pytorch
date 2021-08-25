@@ -1,12 +1,16 @@
 # Distance to Modelled Embedding (DIME)
 
+[![PyPI version](https://badge.fury.io/py/dime-pytorch.svg)](https://badge.fury.io/py/dime-pytorch)
+[![arXiv](https://img.shields.io/badge/arXiv-2108.10673-b31b1b.svg)](https://arxiv.org/abs/2108.10673)
+[![MIT License badge](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/sartorius-research/dime.pytorch/blob/master/LICENSE)
+
 This repo contains an implementation of DIME, which is a method to detect out-of-distribution (OOD) observations in deep 
-learning. DIME provides a flexible method to detect OOD-observations with minimal computational overhead and simply assumes
-access to intermediate features from an ANN.
+learning and is based on the work in [this paper](https://arxiv.org/abs/2108.10673). DIME provides a flexible method to detect OOD-observations with minimal computational overhead and simply assumes
+access to intermediate features from an ANN. DIME is summarized in the workflow below.
 
 ![Schematic describing DIME](dime.png)
 
-The workflow how DIME works is summarized in four steps.
+DIME is summarized in four steps.
 
 1. Given a trained ANN and training set observations, obtain intermediate feature representations of the
    training set observations (here denoted embedding). If the embeddings are higher than 2-dimensional, 
@@ -56,6 +60,21 @@ receive the probablities by passing `return_probablities`-keyword:
 You can also use the alternative formulation of distance within the hyperplane, optionally as probabilities:
 
     modelled_embedding.distance_within_hyperplane(x_new)  # -> 1D float-tensor, length N_new
+
+## How to cite
+
+If you find DIME useful in your research, please cite the following paper:
+
+```
+@misc{sjogren2021outofdistribution,
+   title={Out-of-Distribution Example Detection in Deep Neural Networks using Distance to Modelled Embedding},
+   author={Rickard Sjögren and Johan Trygg},
+   year={2021},
+   eprint={2108.10673},
+   archivePrefix={arXiv},
+   primaryClass={cs.LG}
+}
+```
 
 ## License
 
